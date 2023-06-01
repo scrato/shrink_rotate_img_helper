@@ -153,129 +153,41 @@ namespace shrink_rotate_img_helper
                     item.Items.CopyTo(arr,0);
                     var imagePaths = arr.Select((subItem) => Dispatcher.Invoke(() => subItem.Tag.ToString())).ToList();
 
-                    Parallel.ForEach(imagePaths, (imagePath) => {
-                        using (var image = new MagickImage(imagePath))
-                        {
-                            var hasDone = false;
-                            while (image.ToByteArray().Length > maxSize)
-                            {
-                                hasDone = true;
-                                var settings = new MagickGeometry(new Percentage(90), new Percentage(90))
-                                {
-                                    IgnoreAspectRatio = false
-                                };
-                                image.Resize(settings);
-                            }
-
-                            if (hasDone)
-                                image.Write(imagePath);
-                        }
-                    });
+                    Parallel.ForEach(imagePaths, (imagePath) => ShrinkSingleFile(imagePath, maxSize));
                     
                 }
-                MessageBox.Show("Finished!");
+                MessageBox.Show("Shrinking Finished!");
             }
         }
 
-        private void TreeView_KeyDown(object sender, KeyEventArgs e)
+        private void ShrinkSingleButton_Click(object sender, RoutedEventArgs e)
         {
-            var treeView = (TreeView)sender;
-            var selectedItem = (TreeViewItem)treeView.SelectedItem;
-
-            if (selectedItem == null) return;
-
-            TreeViewItem nextItem = null;
-
-            switch (e.Key)
+            var inputBox = new InputBoxWindow("Enter maximum image size in megabytes");
+            if (inputBox.ShowDialog() == true)
             {
-                case Key.PageUp:
-                    nextItem = GetPreviousItem(selectedItem);
-                    break;
-                case Key.PageDown:
-                    nextItem = GetNextItem(selectedItem);
-                    break;
+                var maxSize = int.Parse(inputBox.InputText) * 1024 * 1024;
+                ShrinkSingleFile(selectedImagePath, maxSize);
             }
-
-            if (nextItem != null)
-            {
-                nextItem.IsSelected = true;
-                nextItem.Focus();
-                e.Handled = true;
-            }
+            MessageBox.Show("Shrinking Finished!");
         }
 
-        private TreeViewItem GetPreviousItem(TreeViewItem item)
+        private void ShrinkSingleFile(string imagePath, int maxSize)
         {
-            TreeViewItem previousItem = GetPreviousItem(item);
-            if (previousItem != null)
+            using (var image = new MagickImage(imagePath))
             {
-                if (previousItem.HasItems && previousItem.IsExpanded)
+
+
+                while (new FileInfo(imagePath).Length > maxSize)
                 {
-                    return previousItem.Items[previousItem.Items.Count - 1] as TreeViewItem;
-                }
-                return previousItem;
-            }
-
-            var parent = item.Parent as TreeViewItem;
-            return parent;
-        }
-
-        private TreeViewItem GetNextItem(TreeViewItem item)
-        {
-            if (item.HasItems && item.IsExpanded)
-            {
-                return item.Items[0] as TreeViewItem;
-            }
-
-            TreeViewItem nextItem = GetNextSibling(item);
-            if (nextItem != null)
-            {
-                return nextItem;
-            }
-
-            var parent = item.Parent as TreeViewItem;
-            while (parent != null)
-            {
-                nextItem = GetNextSibling(parent);
-                if (nextItem != null)
-                {
-                    return nextItem;
+                    var settings = new MagickGeometry(new Percentage(90), new Percentage(90))
+                    {
+                        IgnoreAspectRatio = false
+                    };
+                    image.Resize(settings);
+                    image.Write(imagePath);
                 }
 
-                parent = parent.Parent as TreeViewItem;
             }
-
-            return null;
         }
-
-        TreeViewItem GetNextSibling(TreeViewItem item)
-        {
-            var parent = item.Parent as ItemsControl;
-            if (parent != null)
-            {
-                var index = parent.ItemContainerGenerator.IndexFromContainer(item);
-                if (index < parent.Items.Count - 1)
-                {
-                    return parent.ItemContainerGenerator.ContainerFromIndex(index + 1) as TreeViewItem;
-                }
-            }
-            return null;
-        }
-
-        TreeViewItem GetPrevSibling(TreeViewItem item)
-        {
-            var parent = item.Parent as ItemsControl;
-            if (parent != null)
-            {
-                var index = parent.ItemContainerGenerator.IndexFromContainer(item);
-                if (index > 0)
-                {
-                    return parent.ItemContainerGenerator.ContainerFromIndex(index - 1) as TreeViewItem;
-                }
-            }
-            return null;
-        }
-
-
     }
 }
