@@ -1,0 +1,1 @@
+# shrink_rotate_img_helper
